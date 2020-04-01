@@ -10,12 +10,20 @@ from midi_processor.processor import decode_midi, encode_midi
 import datetime
 import argparse
 from torch.utils.tensorboard import SummaryWriter
-# from tensorboardX import SummaryWriter
+from os.path import join
 
-
-# parser = custom.get_argument_parser()
-# args = parser.parse_args()
-# config.load(args.model_dir, args.configs, initialize=True)
+parser = argparse.ArgumentParser(None)
+parser.add_argument("-m", "--model_dir", type=str, required=True,
+        help="The directory for a trained model is saved.")
+parser.add_argument("-k", "--ckpt", type=str, dest="ckpt", default="final.pth",
+        help="name of checkpoint file")
+parser.add_argument("-c", "--conf", dest="configs", default=["generate.yml"], nargs="*",
+        help="A list of configuration items. "
+             "An item is a file path or a 'key=value' formatted string. "
+             "The type of a value is determined by applying int(), float(), and str() "
+             "to it sequencially.")
+args = parser.parse_args()
+config.load(args.model_dir, args.configs, initialize=True)
 
 # check cuda
 if torch.cuda.is_available():
@@ -27,15 +35,6 @@ current_time = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
 gen_log_dir = 'logs/mt_decoder/generate_'+current_time+'/generate'
 gen_summary_writer = SummaryWriter(gen_log_dir)
 
-import param
-# mt = MusicTransformer(
-#     embedding_dim=param.embedding_dim,
-#     vocab_size=param.vocab_size,
-#     num_layer=param.num_attention_layer,
-#     max_seq=param.max_seq,
-#     dropout=0,
-#     debug=False)
-
 mt = MusicTransformer(
     embedding_dim=config.embedding_dim,
     vocab_size=config.vocab_size,
@@ -43,27 +42,19 @@ mt = MusicTransformer(
     max_seq=config.max_seq,
     dropout=0,
     debug=False)
-# mt.load_state_dict(torch.load(args.model_dir+'/final.pth'))
+mt.load_state_dict(torch.load(join(args.model_dir, args.ckpt)))
 mt.test()
-
-# def model_size_summary(model):
-#     param_num = 0
-#     for param in model.parameters():
-#         param_num += np.prod(list(param.shape))
-#         print(param.shape, "num %d" % np.prod(list(param.shape)))
-#     print(param_num, " in total, %.2fmb"%(param_num * 4 / 1024**2))
-#
-# model_size_summary(mt)
 mt.cuda()
 #%%
 ## %%time
-inputs = np.array([[24, 28, 31]])
+
+inputs = np.array([[60, 64, 67]])
 inputs = torch.from_numpy(inputs).cuda()
-result = mt(inputs, 1024, gen_summary_writer)
-# for i in result:
-#     print(i)
-mid = decode_midi(result, file_path=None)#
-decode_midi(result, file_path='result/generated.mid')
+with torch.no_grad():
+    result = mt(inputs, 1024, gen_summary_writer)
+# mid = decode_midi(result.cpu(), file_path=None) #
+decode_midi(result, file_path='result/generated%s.mid'%args.ckpt)
+gen_summary_writer.close()
 #%%
 # print(config.condition_file)
 # if config.condition_file is not None:
@@ -74,7 +65,7 @@ decode_midi(result, file_path='result/generated.mid')
 # result = mt(inputs, config.length, gen_summary_writer)
 
 
-mid = decode_midi(result, file_path=None)#
+# mid = decode_midi(result, file_path=None)#
 # decode_midi(result, file_path=config.save_path)
 
-gen_summary_writer.close()
+

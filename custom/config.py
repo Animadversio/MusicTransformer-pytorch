@@ -1,8 +1,9 @@
 import os
 import yaml
 import logging
+from os.path import join
 
-
+config_path = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\config"
 class Config:
     def __init__(self, config_file_name):
         super().__setattr__('dict', {})
@@ -41,9 +42,13 @@ class Config:
         for cfg in configs:
             kv = [s.strip() for s in cfg.split("=", 1)]
             if len(kv) == 1:
-                if not os.path.exists(cfg):
+                if os.path.exists(cfg):
+                    obj = yaml.load(open(cfg).read(), Loader=yaml.FullLoader)
+                elif os.path.exists(join(config_path, cfg)):
+                    obj = yaml.load(open(join(config_path, cfg)).read(), Loader=yaml.FullLoader)
+                else:
                     raise ValueError("The file '{}' doesn't exist.".format(cfg))
-                obj = yaml.load(open(cfg).read(), Loader=yaml.FullLoader)
+
                 for k, v in obj.items():
                     self[k] = v
             else:
@@ -94,6 +99,6 @@ class MusicTransformerConfig(Config):
         self.token_eos = self.event_dim + 2
         self.vocab_size = self.event_dim + 3
 
-config_path = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\config"
+
 config = MusicTransformerConfig('base.yml')  # save
 config.load(config_path, [os.path.join(config_path, 'base.yml')])

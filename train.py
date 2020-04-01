@@ -19,8 +19,8 @@ from torch.utils.tensorboard import SummaryWriter
 # parser = custom.get_argument_parser()
 # args = parser.parse_args("-m train_model -c config/train.yml")
 # config.load(args.model_dir, args.configs, initialize=True)
-model_dir = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\train_demo"
-configs = [r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\train_demo\train.yml"]
+model_dir = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq"
+configs = [r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq\train.yml"]
 config.load(model_dir, configs, initialize=False)
 
 # check cuda
@@ -47,6 +47,10 @@ mt = MusicTransformer(
             dropout=config.dropout,
             debug=config.debug, loader_path=config.load_path
 )
+if config.init_ckpt is not None:
+    mt.load_state_dict(torch.load(config.init_ckpt))
+    print("Weights from %s loaded" % config.init_ckpt)
+
 mt.to(config.device)
 opt = optim.Adam(mt.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)  # setting rate inside
 scheduler = CustomSchedule(config.embedding_dim, optimizer=opt)  # custom implementation of rate decay
