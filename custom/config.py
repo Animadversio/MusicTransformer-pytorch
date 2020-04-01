@@ -94,5 +94,6 @@ class MusicTransformerConfig(Config):
         self.token_eos = self.event_dim + 2
         self.vocab_size = self.event_dim + 3
 
-
-config = MusicTransformerConfig('save.yml')
+config_path = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\config"
+config = MusicTransformerConfig('base.yml')  # save
+config.load(config_path, [os.path.join(config_path, 'base.yml')])

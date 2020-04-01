@@ -1,4 +1,4 @@
-pickle_dir: '../MusicTransformer/dataset/processed'
+pickle_dir: 'E:\Datasets\processed-midi'
 epochs: 1000
 batch_size: 8
 load_path:

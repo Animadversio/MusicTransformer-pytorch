@@ -8,6 +8,7 @@ from custom.config import config
 
 class Data:
     def __init__(self, dir_path):
+        """find all .pickle file in a folder"""
         self.files = list(utils.find_files_by_extensions(dir_path, ['.pickle']))
         self.file_dict = {
             'train': self.files[:int(len(self.files) * 0.8)],
@@ -29,6 +30,7 @@ class Data:
             self._get_seq(file, length)
             for file in batch_files
         ]
+
         return np.array(batch_data)  # batch_size, seq_len
 
     def seq2seq_batch(self, batch_size, length, mode='train'):

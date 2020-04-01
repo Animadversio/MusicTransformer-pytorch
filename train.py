@@ -11,13 +11,17 @@ import time
 
 import torch
 import torch.optim as optim
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 
 # set config
-parser = custom.get_argument_parser()
-args = parser.parse_args()
-config.load(args.model_dir, args.configs, initialize=True)
+# parser = custom.get_argument_parser()
+# args = parser.parse_args("-m train_model -c config/train.yml")
+# config.load(args.model_dir, args.configs, initialize=True)
+model_dir = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\train_demo"
+configs = [r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\train_demo\train.yml"]
+config.load(model_dir, configs, initialize=False)
 
 # check cuda
 if torch.cuda.is_available():
@@ -44,8 +48,8 @@ mt = MusicTransformer(
             debug=config.debug, loader_path=config.load_path
 )
 mt.to(config.device)
-opt = optim.Adam(mt.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)
-scheduler = CustomSchedule(config.embedding_dim, optimizer=opt)
+opt = optim.Adam(mt.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)  # setting rate inside
+scheduler = CustomSchedule(config.embedding_dim, optimizer=opt)  # custom implementation of rate decay
 
 # multi-GPU set
 if torch.cuda.device_count() > 1:
@@ -106,14 +110,23 @@ for e in range(config.epochs):
         # result_metrics = metric_set(sample, batch_y)
         if b % 100 == 0:
             single_mt.eval()
-            eval_x, eval_y = dataset.slide_seq2seq_batch(2, config.max_seq, 'eval')
+            try_num = 0
+            while True:  # if you don't get your sequence retry until succeed.
+                try:
+                    eval_x, eval_y = dataset.slide_seq2seq_batch(2, config.max_seq, 'eval')
+                except IndexError: # it's possible that the file you found is not long enough for your max_len
+                    try_num += 1
+                    if try_num % 10 == 0:
+                        print("Try to find suitable length MIDI file, (retried %d times)" % try_num)
+                    continue
+                break
             eval_x = torch.from_numpy(eval_x).contiguous().to(config.device, dtype=torch.int)
             eval_y = torch.from_numpy(eval_y).contiguous().to(config.device, dtype=torch.int)
 
             eval_preiction, weights = single_mt.forward(eval_x)
 
             eval_metrics = metric_set(eval_preiction, eval_y)
-            torch.save(single_mt.state_dict(), args.model_dir+'/train-{}.pth'.format(e))
+            torch.save(single_mt.state_dict(), model_dir+'/train-{}.pth'.format(e))
             if b == 0:
                 train_summary_writer.add_histogram("target_analysis", batch_y, global_step=e)
                 train_summary_writer.add_histogram("source_analysis", batch_x, global_step=e)
@@ -134,13 +147,14 @@ for e in range(config.epochs):
         idx += 1
 
         # switch output device to: gpu-1 ~ gpu-n
-        sw_start = time.time()
-        mt.output_device = idx % (torch.cuda.device_count() -1) + 1
-        sw_end = time.time()
-        if config.debug:
-            print('output switch time: {}'.format(sw_end - sw_start) )
+        if torch.cuda.device_count() > 1:
+            sw_start = time.time()
+            mt.output_device = idx % (torch.cuda.device_count() -1) + 1
+            sw_end = time.time()
+            if config.debug:
+                print('output switch time: {}'.format(sw_end - sw_start) )
 
-torch.save(single_mt.state_dict(), args.model_dir+'/final.pth'.format(idx))
+torch.save(single_mt.state_dict(), model_dir+'/final.pth'.format(idx))
 eval_summary_writer.close()
 train_summary_writer.close()
 
