@@ -103,7 +103,10 @@ $ python train.py -c {config yml file 1} {config yml file 2} ... -m {model_dir}
 $ python generate.py -c {config yml file 1} {config yml file 2} -m {model_dir}
 ```
 
-
+Current generation code
+```bash
+python generate_cmd.py -m train_model\longer_seq -k train-250.pth -i mz_331_2 -l 250
+```
 
 
 ## Generated Samples ( Youtube Link )
