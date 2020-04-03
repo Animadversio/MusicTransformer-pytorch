@@ -43,7 +43,7 @@ class MusicTransformer(torch.nn.Module):
             fc = self.fc(decoder)
             if self.training:
                 return fc.contiguous()
-            else:
+            else:  # still training
                 return fc.contiguous(), [weight.contiguous() for weight in w]
         else:
             return self.generate(x, length, None).contiguous().tolist()

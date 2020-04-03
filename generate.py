@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 # parser = custom.get_argument_parser()
 # args = parser.parse_args()
 # config.load(args.model_dir, args.configs, initialize=True)
-
+# config.load('generate.yml')
 # check cuda
 if torch.cuda.is_available():
     config.device = torch.device('cuda')
@@ -27,7 +27,7 @@ current_time = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
 gen_log_dir = 'logs/mt_decoder/generate_'+current_time+'/generate'
 gen_summary_writer = SummaryWriter(gen_log_dir)
 
-import param
+# import param
 # mt = MusicTransformer(
 #     embedding_dim=param.embedding_dim,
 #     vocab_size=param.vocab_size,

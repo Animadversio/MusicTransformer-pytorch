@@ -46,7 +46,19 @@ class Data:
         return x, y
 
     def slide_seq2seq_batch(self, batch_size, length, mode='train'):
-        data = self.batch(batch_size, length+1, mode)
+        try_num = 0
+        while True:  # if you don't get your sequence retry until succeed.
+            try:
+                data = self.batch(batch_size, length+1, mode)
+            except IndexError:  # it's possible that the file you found is not long enough for your max_len
+                try_num += 1
+                if try_num % 10 == 0:
+                    print("Try to find suitable length MIDI file, (retried %d times)" % try_num)
+                if try_num == 200:
+                    print("Cannot find suitable length MIDI file. Abort")
+                    raise IndexError
+                continue
+            break
         x = data[:, :-1]
         y = data[:, 1:]
         return x, y

@@ -4,6 +4,7 @@ import logging
 from os.path import join
 
 config_path = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\config"
+config_path = r"C:\Users\PonceLab\Documents\MusicTransformer-pytorch\config"
 class Config:
     def __init__(self, config_file_name):
         super().__setattr__('dict', {})
@@ -101,4 +102,4 @@ class MusicTransformerConfig(Config):
 
 
 config = MusicTransformerConfig('base.yml')  # save
-config.load(config_path, [os.path.join(config_path, 'base.yml')])
+config.load(config_path, [join(config_path, 'base.yml'), join(config_path, 'generate.yml')])

@@ -8,10 +8,11 @@ from data import Data
 import utils
 import datetime
 import time
-
+from os.path import join
 import torch
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+from visualization import plot_piano_roll
 # from tensorboardX import SummaryWriter
 
 
@@ -19,8 +20,10 @@ from torch.utils.tensorboard import SummaryWriter
 # parser = custom.get_argument_parser()
 # args = parser.parse_args("-m train_model -c config/train.yml")
 # config.load(args.model_dir, args.configs, initialize=True)
-model_dir = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq"
-configs = [r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq\train.yml"]
+# model_dir = r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq"
+# configs = [r"E:\Github_Projects\music_DeepLearning\MusicTransformer-pytorch\train_model\longer_seq\train.yml"]
+model_dir = r"C:\Users\PonceLab\Documents\MusicTransformer-pytorch\train_model\1536_seq"
+configs = [join(model_dir, r"train.yml")]
 config.load(model_dir, configs, initialize=False)
 
 # check cuda
@@ -87,12 +90,10 @@ for e in range(config.epochs):
     print(">>> [Epoch was updated]")
     for b in range(len(dataset.files) // config.batch_size):
         scheduler.optimizer.zero_grad()
-        try:
-            batch_x, batch_y = dataset.slide_seq2seq_batch(config.batch_size, config.max_seq)
-            batch_x = torch.from_numpy(batch_x).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
-            batch_y = torch.from_numpy(batch_y).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
-        except IndexError:
-            continue
+
+        batch_x, batch_y = dataset.slide_seq2seq_batch(config.batch_size, config.max_seq)
+        batch_x = torch.from_numpy(batch_x).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
+        batch_y = torch.from_numpy(batch_y).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
 
         start_time = time.time()
         mt.train()
@@ -114,20 +115,11 @@ for e in range(config.epochs):
         # result_metrics = metric_set(sample, batch_y)
         if b % 100 == 0:
             single_mt.eval()
-            try_num = 0
-            while True:  # if you don't get your sequence retry until succeed.
-                try:
-                    eval_x, eval_y = dataset.slide_seq2seq_batch(2, config.max_seq, 'eval')
-                except IndexError: # it's possible that the file you found is not long enough for your max_len
-                    try_num += 1
-                    if try_num % 10 == 0:
-                        print("Try to find suitable length MIDI file, (retried %d times)" % try_num)
-                    continue
-                break
+            eval_x, eval_y = dataset.slide_seq2seq_batch(2, config.max_seq, 'eval')
             eval_x = torch.from_numpy(eval_x).contiguous().to(config.device, dtype=torch.int)
             eval_y = torch.from_numpy(eval_y).contiguous().to(config.device, dtype=torch.int)
-
-            eval_preiction, weights = single_mt.forward(eval_x)
+            with torch.no_grad():
+                eval_preiction, weights = single_mt.forward(eval_x)
 
             eval_metrics = metric_set(eval_preiction, eval_y)
             torch.save(single_mt.state_dict(), model_dir+'/train-{}.pth'.format(e))
@@ -138,11 +130,13 @@ for e in range(config.epochs):
                     attn_log_name = "attn/layer-{}".format(i)
                     utils.attention_image_summary(
                         attn_log_name, weight, step=idx, writer=eval_summary_writer)
-
+                # figh = plot_piano_roll(ps_roll, fs=1 / 100.0)
+                # train_summary_writer.add_figure("piano_roll", figh, global_step=e)
             eval_summary_writer.add_scalar('loss', eval_metrics['loss'], global_step=idx)
             eval_summary_writer.add_scalar('accuracy', eval_metrics['accuracy'], global_step=idx)
             eval_summary_writer.add_histogram("logits_bucket", eval_metrics['bucket'], global_step=idx)
-
+            eval_x.cpu()
+            eval_y.cpu()
             print('\n====================================================')
             print('Epoch/Batch: {}/{}'.format(e, b))
             print('Train >>>> Loss: {:6.6}, Accuracy: {}'.format(metrics['loss'], metrics['accuracy']))
